@@ -2,82 +2,93 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
-public class MsgServer implements IServer {
-	private int port = 1025;
-	private String ip = null;
-	private ServerSocket serverSocket = null;
-	private Socket socket = null;
+public class MsgServer implements Runnable {
+	private static int port = 1025;
+	private static String ip = null;
+	private static ServerSocket serverSocket = null;
+	
+	private static Map<String, Socket> clientList=new HashMap<String, Socket>();
 
 	public MsgServer(int p) {
-
-		this.ip = getIP();
-		this.port = p;
 
 		try {
 			serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			System.out.println("create server socket failed!");
 			e.printStackTrace();
 		}
-
+		
+		MsgServer.ip = getIP();
+		MsgServer.port = p;
 	}
-
-	@Override
-	public String getIP() {
-
-		InetAddress inetAddr = null;
+	
+	public void run() {
 		try {
-			inetAddr = InetAddress.getLocalHost();
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			System.out.println("unknown host!");
+			listen();
+		} catch (IOException e) {
+			
 			e.printStackTrace();
 		}
-		if (inetAddr != null)
-			ip = inetAddr.getHostAddress();
-		else
-			System.out.println("Server: get ip failed!");
-
-		return ip;
 	}
 
-	@Override
+	
+	public String getIP() {
+
+		return serverSocket.getInetAddress().toString();
+	}
+
+	
 	public int getPort() {
-		// TODO Auto-generated method stub
+		
 		return port;
 	}
 
-	@Override
+	
 	public void setPort(int port) {
-		// TODO Auto-generated method stub
-		this.port = port;
+		
+		MsgServer.port = port;
+		
 	}
 
-	@Override
-	public void listen() {
-		// TODO Auto-generated method stub
-		try {
-			if (socket == null) {
-				socket = serverSocket.accept();
-				System.out.println("client connected");
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	private void listen() throws IOException {
+		//synchronized
+		Socket socket =null;
+		synchronized(this) {
+			socket = serverSocket.accept();
 		}
-
+		
+		Socket temp = null;
+		if (socket != null) {
+			String remoteAddress = socket.getRemoteSocketAddress().toString();
+			System.out.println(remoteAddress);
+			
+			synchronized(this) {
+				if (clientList.containsKey(remoteAddress)&& (temp = clientList.get(remoteAddress)) != null) {
+					if (!temp.isClosed() && temp.isConnected()) {
+						System.out.println("Client already Connected.");
+						return;
+					}
+				}
+				clientList.put(remoteAddress, socket);
+				System.out.println("client " + remoteAddress + " connected");
+				
+			}
+			
+			read(socket);//read input
+		}
 	}
+	
 
-	@Override
-	public void read() {
+	private void read(Socket socket) throws IOException {
 		if (socket == null) {
 			System.err.println("socket null");
 			return;
@@ -86,29 +97,24 @@ public class MsgServer implements IServer {
 		InputStreamReader isReader = null;
 		BufferedReader bufferReader = null;
 		InputStream iStream = null;
-		
-		try {
-			
-			iStream = socket.getInputStream();		
-			isReader = new InputStreamReader(iStream);
-			bufferReader = new BufferedReader(isReader);
-			String msg=bufferReader.readLine();
-			
-			while (msg!=null && !msg.equals("kill")) {
-				System.out.println("client > "+msg);
-				msg=bufferReader.readLine();
-			}
-			bufferReader.close();
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
+		iStream = socket.getInputStream();
+		isReader = new InputStreamReader(iStream);
+		bufferReader = new BufferedReader(isReader);
+		String msg = bufferReader.readLine();
 
+		while (msg != null && !msg.equals("kill")) {
+			System.out.println("client > " + msg);
+			
+			sendToAll(socket,msg);
+			
+			msg = bufferReader.readLine();
 		}
+		bufferReader.close();
+
 	}
 
-	@Override
-	public void send(String msg) {
+	private void send(Socket socket, String msg) throws IOException {
 
 		if (socket == null) {
 			System.err.println("socket null");
@@ -116,38 +122,29 @@ public class MsgServer implements IServer {
 		}
 
 		PrintWriter printWriter = null;
-		
-		try {
-			printWriter = new PrintWriter(socket.getOutputStream());
 
-			printWriter.println(msg);
-			printWriter.flush();
-		} catch (IOException e) {
+		printWriter = new PrintWriter(socket.getOutputStream());
 
-			e.printStackTrace();
-		} finally {
-
-		}
-
+		printWriter.println(msg);
+		printWriter.flush();
 	}
-
-	@Override
-	public void restart() {
-		// TODO Auto-generated method stub
-
-		try {
-			close();
-			serverSocket = new ServerSocket(port);
-		} catch (IOException e) {
-
-			e.printStackTrace();
+	
+	private synchronized void sendToAll(Socket from,String msg) throws IOException {
+		Set<String> set=clientList.keySet();
+		for(Iterator<String> iterator=set.iterator();iterator.hasNext();) {
+			String key=iterator.next();
+			if(key.equals(from.getRemoteSocketAddress().toString())) {
+				continue;
+			}
+			Socket temp=clientList.get(key);
+			if(!temp.isClosed() && temp.isConnected()) {
+				String newMsg=from.getRemoteSocketAddress().toString()+">"+msg;
+				send(temp, newMsg);
+			}
 		}
-
 	}
-
-	@Override
-	public void close() {
-		try {
+	
+	private void close(Socket socket) throws IOException {
 			if (socket != null) {
 				socket.close();
 				socket = null;
@@ -156,14 +153,6 @@ public class MsgServer implements IServer {
 				serverSocket.close();
 				serverSocket = null;
 			}
-
-			socket.shutdownInput();
-			socket.close();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
 	}
 
 }

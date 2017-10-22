@@ -7,17 +7,22 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class MsgClient implements IClient {
-	private String serverIP = "localhost";
-	private int serverPort = 1025;
-	private Socket socket = null;
+public class MsgClient implements Runnable{
+	private static String serverIP = "localhost";
+	private static int serverPort = 1025;
+	private static Socket socket = null;
 
 	public MsgClient(String ip, int port) {
-		this.serverIP = ip;
-		this.serverPort = port;
+		MsgClient.serverIP = ip;
+		MsgClient.serverPort = port;
 	}
 
 	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		read();
+	}
+	
 	public void connect() {
 		// TODO Auto-generated method stub
 		try {
@@ -30,14 +35,7 @@ public class MsgClient implements IClient {
 			e.printStackTrace();
 		}
 	}
-
-	@Override
-	public void restart() {
-		close();
-		connect();
-	}
-
-	@Override
+	
 	public void close() {
 
 		try {
@@ -52,7 +50,7 @@ public class MsgClient implements IClient {
 		}
 	}
 
-	@Override
+	
 	public void send(String msg) {
 		OutputStream outputStream = null;
 		PrintWriter printWriter = null;
@@ -71,7 +69,7 @@ public class MsgClient implements IClient {
 
 	}
 
-	@Override
+	
 	public void read() {
 
 		if (socket == null) {
@@ -101,17 +99,18 @@ public class MsgClient implements IClient {
 		}
 	}
 
-	@Override
+	
 	public String getServerConfig() {
 		
 		return serverIP + ":" + serverPort;
 	}
 
-	@Override
+	
 	public void setServerConfig(String ip, int port) {
 
 		this.serverIP = ip;
 		this.serverPort = port;
 	}
+
 
 }

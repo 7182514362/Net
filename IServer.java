@@ -1,4 +1,4 @@
-
+import java.io.IOException;
 
 public interface IServer {
 	public String getIP();
@@ -8,8 +8,7 @@ public interface IServer {
 	
 	public void restart();
 	
-	public void listen();
+	public void listen() throws IOException;
 	public void close();
 	public void send(String msg);
-	public void read();
 }
