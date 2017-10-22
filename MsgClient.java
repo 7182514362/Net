@@ -7,7 +7,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class MsgClient implements Runnable{
+public class MsgClient implements Runnable {
 	private static String serverIP = "localhost";
 	private static int serverPort = 1025;
 	private static Socket socket = null;
@@ -22,7 +22,7 @@ public class MsgClient implements Runnable{
 		// TODO Auto-generated method stub
 		read();
 	}
-	
+
 	public void connect() {
 		// TODO Auto-generated method stub
 		try {
@@ -35,22 +35,19 @@ public class MsgClient implements Runnable{
 			e.printStackTrace();
 		}
 	}
-	
-	public void close() {
 
-		try {
-			if (socket != null)
+	public void close() throws IOException {
+
+		synchronized (socket) {
+			if (socket != null) {
+				socket.shutdownInput();
+				socket.shutdownOutput();
 				socket.close();
-
-			socket.shutdownInput();
-			socket.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			}
 		}
+
 	}
 
-	
 	public void send(String msg) {
 		OutputStream outputStream = null;
 		PrintWriter printWriter = null;
@@ -61,7 +58,7 @@ public class MsgClient implements Runnable{
 			printWriter.println(msg);
 			printWriter.flush();
 		} catch (IOException e) {
-			
+
 			e.printStackTrace();
 		} finally {
 
@@ -69,7 +66,6 @@ public class MsgClient implements Runnable{
 
 	}
 
-	
 	public void read() {
 
 		if (socket == null) {
@@ -80,37 +76,37 @@ public class MsgClient implements Runnable{
 		InputStreamReader isReader = null;
 		BufferedReader bufferReader = null;
 		InputStream iStream = null;
-		
+
 		try {
 			iStream = socket.getInputStream();
 			isReader = new InputStreamReader(iStream);
 			bufferReader = new BufferedReader(isReader);
-			String msg= bufferReader.readLine();
-			while (msg!=null) {
+			String msg = bufferReader.readLine();
+			while (msg != null) {
 				System.out.println(msg);
-				msg= bufferReader.readLine();
+				synchronized (socket) {
+					if (!socket.isClosed() && socket.isConnected())
+						msg = bufferReader.readLine();
+				}
 			}
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			
+
 		}
 	}
 
-	
 	public String getServerConfig() {
-		
+
 		return serverIP + ":" + serverPort;
 	}
 
-	
 	public void setServerConfig(String ip, int port) {
 
-		this.serverIP = ip;
-		this.serverPort = port;
+		MsgClient.serverIP = ip;
+		MsgClient.serverPort = port;
 	}
-
 
 }

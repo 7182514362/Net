@@ -62,9 +62,7 @@ public class MsgServer implements Runnable {
 	private void listen() throws IOException {
 		//synchronized
 		Socket socket =null;
-		synchronized(this) {
-			socket = serverSocket.accept();
-		}
+		socket = serverSocket.accept();
 		
 		Socket temp = null;
 		if (socket != null) {
@@ -79,7 +77,7 @@ public class MsgServer implements Runnable {
 					}
 				}
 				clientList.put(remoteAddress, socket);
-				System.out.println("client " + remoteAddress + " connected");
+				System.out.println("client " + remoteAddress.replace('/', ' ') + " connected");
 				
 			}
 			
@@ -103,14 +101,16 @@ public class MsgServer implements Runnable {
 		bufferReader = new BufferedReader(isReader);
 		String msg = bufferReader.readLine();
 
-		while (msg != null && !msg.equals("kill")) {
+		while (msg != null && !msg.equals("close")) {
 			System.out.println("client > " + msg);
 			
 			sendToAll(socket,msg);
 			
 			msg = bufferReader.readLine();
 		}
-		bufferReader.close();
+		
+		//bufferReader.close();
+		disconnect(socket);
 
 	}
 
@@ -138,12 +138,18 @@ public class MsgServer implements Runnable {
 			}
 			Socket temp=clientList.get(key);
 			if(!temp.isClosed() && temp.isConnected()) {
-				String newMsg=from.getRemoteSocketAddress().toString()+">"+msg;
+				String newMsg=from.getRemoteSocketAddress().toString().replace('/', ' ')+" > "+msg;
 				send(temp, newMsg);
 			}
 		}
 	}
-	
+	private void disconnect(Socket socket) throws IOException {
+		if (socket != null) {
+			socket.shutdownInput();
+			socket.shutdownOutput();
+			socket.close();
+		}
+	}
 	private void close(Socket socket) throws IOException {
 			if (socket != null) {
 				socket.close();
