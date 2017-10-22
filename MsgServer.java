@@ -15,13 +15,6 @@ public class MsgServer implements IServer {
 	private ServerSocket serverSocket = null;
 	private Socket socket = null;
 
-	OutputStream outputStream = null;
-	PrintWriter printWriter = null;
-
-	InputStreamReader isReader = null;
-	BufferedReader bufferReader = null;
-	InputStream iStream = null;
-
 	public MsgServer(int p) {
 
 		this.ip = getIP();
@@ -69,12 +62,12 @@ public class MsgServer implements IServer {
 	}
 
 	@Override
-	public synchronized void listen() {
+	public void listen() {
 		// TODO Auto-generated method stub
 		try {
 			if (socket == null) {
 				socket = serverSocket.accept();
-				System.out.println("MsgServer listen at " + getIP() + ":" + getPort());
+				System.out.println("client connected");
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -90,20 +83,24 @@ public class MsgServer implements IServer {
 			return;
 		}
 
+		InputStreamReader isReader = null;
+		BufferedReader bufferReader = null;
+		InputStream iStream = null;
+		
 		try {
-			if (iStream == null)
-				iStream = socket.getInputStream();
-			if (isReader == null)
-				isReader = new InputStreamReader(iStream);
-			if (bufferReader == null)
-				bufferReader = new BufferedReader(isReader);
-			String msg;
-			while ((msg = bufferReader.readLine()) != null) {
-				System.out.println(msg);
+			
+			iStream = socket.getInputStream();		
+			isReader = new InputStreamReader(iStream);
+			bufferReader = new BufferedReader(isReader);
+			String msg=bufferReader.readLine();
+			
+			while (msg!=null && !msg.equals("kill")) {
+				System.out.println("client > "+msg);
+				msg=bufferReader.readLine();
 			}
+			bufferReader.close();
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 
@@ -118,13 +115,12 @@ public class MsgServer implements IServer {
 			return;
 		}
 
+		PrintWriter printWriter = null;
+		
 		try {
-			if (outputStream == null)
-				outputStream = socket.getOutputStream();
-			if (printWriter == null)
-				printWriter = new PrintWriter(outputStream);
+			printWriter = new PrintWriter(socket.getOutputStream());
 
-			printWriter.write(msg);
+			printWriter.println(msg);
 			printWriter.flush();
 		} catch (IOException e) {
 
@@ -143,7 +139,7 @@ public class MsgServer implements IServer {
 			close();
 			serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+
 			e.printStackTrace();
 		}
 
@@ -160,18 +156,6 @@ public class MsgServer implements IServer {
 				serverSocket.close();
 				serverSocket = null;
 			}
-
-			if (isReader != null)
-				isReader.close();
-			if (iStream != null)
-				iStream.close();
-			if (bufferReader != null)
-				bufferReader.close();
-
-			if (outputStream != null)
-				outputStream.close();
-			if (printWriter != null)
-				printWriter.close();
 
 			socket.shutdownInput();
 			socket.close();

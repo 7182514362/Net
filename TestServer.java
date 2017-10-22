@@ -7,10 +7,11 @@ public class TestServer {
 		ReadMsgServer readMsgServer=new ReadMsgServer(server);
 		SendMsgServer sendMsgServer=new SendMsgServer(server);
 		
+		System.out.println("read");
 		readMsgServer.start();
-		Thread.sleep(1000);
+		Thread.sleep(500);
+		System.out.println("send");
 		sendMsgServer.start();
-		System.out.println("MsgServer started");
 	}
 
 }
@@ -19,21 +20,17 @@ class ReadMsgServer extends Thread{
 	MsgServer server=null;
 	public ReadMsgServer(MsgServer server) {
 		this.server=server;
-		server.listen();
+		
 	}
 	public void run() {
 		super.run();
 		
-		while(server!=null) {
-			server.read();
-/*			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				
-				e.printStackTrace();
-			}*/
+		if(server!=null) {
+			server.listen();
+			server.read();	
 		}
 		
+		server.close();	
 	}
 }
 
@@ -41,22 +38,21 @@ class SendMsgServer extends Thread{
 	MsgServer server=null;
 	public SendMsgServer(MsgServer server) {
 		this.server=server;
-		server.listen();
+		
 	}
 	public void run() {
 		super.run();
 		
+		if(server!=null)
+			server.listen();
+		
 		Scanner scanner=new Scanner(System.in);
-		String msg;
-		while(server!=null && (msg=scanner.nextLine())!="quit") {
+		String msg=scanner.nextLine();
+		while(server!=null && !msg.equals("quit")) {
 			server.send(msg);
-/*			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}*/
+			msg=scanner.nextLine();
 		}
-		//server.close();
+		scanner.close();
+		server.close();
 	}
 }

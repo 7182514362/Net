@@ -12,13 +12,6 @@ public class MsgClient implements IClient {
 	private int serverPort = 1025;
 	private Socket socket = null;
 
-	InputStreamReader isReader = null;
-	BufferedReader bufferReader = null;
-	InputStream iStream = null;
-
-	OutputStream outputStream = null;
-	PrintWriter printWriter = null;
-
 	public MsgClient(String ip, int port) {
 		this.serverIP = ip;
 		this.serverPort = port;
@@ -50,12 +43,6 @@ public class MsgClient implements IClient {
 		try {
 			if (socket != null)
 				socket.close();
-			if (iStream != null)
-				iStream.close();
-			if (isReader != null)
-				isReader.close();
-			if (bufferReader != null)
-				bufferReader.close();
 
 			socket.shutdownInput();
 			socket.close();
@@ -67,17 +54,16 @@ public class MsgClient implements IClient {
 
 	@Override
 	public void send(String msg) {
-
+		OutputStream outputStream = null;
+		PrintWriter printWriter = null;
 		try {
-			if (outputStream == null)
-				outputStream = socket.getOutputStream();
-			if (printWriter == null)
-				printWriter = new PrintWriter(outputStream);
+			outputStream = socket.getOutputStream();
+			printWriter = new PrintWriter(outputStream);
 
-			printWriter.write(msg);
+			printWriter.println(msg);
 			printWriter.flush();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} finally {
 
@@ -93,45 +79,37 @@ public class MsgClient implements IClient {
 			return;
 		}
 
+		InputStreamReader isReader = null;
+		BufferedReader bufferReader = null;
+		InputStream iStream = null;
+		
 		try {
-			if (iStream == null)
-				iStream = socket.getInputStream();
-			if (isReader == null)
-				isReader = new InputStreamReader(iStream);
-			if (bufferReader == null)
-				bufferReader = new BufferedReader(isReader);
-			String msg;
-			while ((msg = bufferReader.readLine()) != null) {
+			iStream = socket.getInputStream();
+			isReader = new InputStreamReader(iStream);
+			bufferReader = new BufferedReader(isReader);
+			String msg= bufferReader.readLine();
+			while (msg!=null) {
 				System.out.println(msg);
+				msg= bufferReader.readLine();
 			}
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			try {
-				/*
-				 * if (iStream != null) iStream.close(); if (isReader != null) isReader.close();
-				 * if (bufferReader != null) bufferReader.close();
-				 */
-
-				socket.shutdownInput();
-			} catch (IOException e) {
-
-				e.printStackTrace();
-			}
+			
 		}
 	}
 
 	@Override
 	public String getServerConfig() {
-		// TODO Auto-generated method stub
+		
 		return serverIP + ":" + serverPort;
 	}
 
 	@Override
 	public void setServerConfig(String ip, int port) {
-		// TODO Auto-generated method stub
+
 		this.serverIP = ip;
 		this.serverPort = port;
 	}
