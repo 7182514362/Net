@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class MsgServer implements Runnable {
-	private static int port = 1025;
+	private static int port = 1026;
 	private static String ip = null;
 	private static ServerSocket serverSocket = null;
 	

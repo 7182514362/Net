@@ -4,7 +4,7 @@ import java.util.Scanner;
 public class TestClient {
 	public static void main(String[] args) throws IOException {
 
-		MsgClient msgClient = new MsgClient("127.0.0.1", 1025);
+		MsgClient msgClient = new MsgClient("127.0.0.1", 1026);
 		msgClient.connect();
 		
 		new Thread(msgClient).start();
